@@ -1,5 +1,8 @@
+require('dotenv').config();
 var createError = require("http-errors");
 var express = require("express");
+var swaggerJsdoc = require("swagger-jsdoc");
+var swaggerUi = require("swagger-ui-express");
 var mongoose = require("mongoose");
 var path = require("path");
 var cookieParser = require("cookie-parser");
@@ -8,12 +11,13 @@ const { format } = require("date-fns");
 
 // 1st party dependencies
 var indexRouter = require("./routes/index");
+var avatarRouter = require("./routes/avatar");
 
 async function getApp() {
 
   // Database
   // Use AZURE_COSMOS_CONNECTIONSTRING if available, otherwise fall back to MONGODB_URI
-  const mongoUri = process.env.AZURE_COSMOS_CONNECTIONSTRING || process.env.MONGODB_URI;
+  const mongoUri = process.env.AZURE_COSMOS_CONNECTIONSTRING || process.env.MONGODB_URI; // For App Service, change to process.env.AZURE_COSMOS_CONNECTIONSTRING || process.env.MONGODB_URI;
 
   mongoose.connect(mongoUri).then(() => {
     console.log('Connected to database');
@@ -30,6 +34,39 @@ async function getApp() {
   app.set("views", path.join(__dirname, "views"));
   app.set("view engine", "pug");
 
+  const options = {
+    definition: {
+      openapi: "3.1.0",
+      info: {
+        title: "LogRocket Express API with Swagger",
+        version: "0.1.0",
+        description:
+          "This is a simple CRUD API application made with Express and documented with Swagger",
+        license: {
+          name: "MIT",
+          url: "https://spdx.org/licenses/MIT.html",
+        },
+        contact: {
+          name: "LogRocket",
+          url: "https://logrocket.com",
+          email: "info@email.com",
+        },
+      },
+      servers: [
+        {
+          url: "http://localhost:3000",
+        },
+      ],
+    },
+    apis: ["./routes/*.js"],
+  };
+  const specs = swaggerJsdoc(options);
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(specs, { explorer: true })
+  );
+
   app.use(logger("dev"));
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
@@ -39,6 +76,7 @@ async function getApp() {
   app.locals.format = format;
 
   app.use("/", indexRouter);
+  app.use("/avatar", avatarRouter);
   app.use("/js", express.static(__dirname + "/node_modules/bootstrap/dist/js")); // redirect bootstrap JS
   app.use(
     "/css",

@@ -3,17 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "nodemon ./bin/www"
   },
   "dependencies": {
+    "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "cookie-parser": "~1.4.6",
     "date-fns": "^4.1.0",
     "debug": "~4.3.7",
+    "dotenv": "^16.4.7",
     "express": "^4.21.0",
     "http-errors": "~2.0.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.42.0",
     "mongoose": "^8.6.3",
     "morgan": "~1.10.0",
-    "pug": "^3.0.3"
+    "nodemon": "^3.1.9",
+    "pug": "^3.0.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.0.3"
   }
 }

@@ -5,6 +5,12 @@ const taskSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  taskId: String,
+  status: { 
+    type: String, 
+    enum: ['pending', 'success', 'failed'], 
+    default: 'active' 
+  },
   createDate: Date,
   completedDate: Date,
   completed: Boolean
