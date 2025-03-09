@@ -51,22 +51,21 @@ router.post("/generate", async (req, res) => {
   try {
     // Get the user ID from auth context
     const userId = req.auth.userId;
-    
+
     // Extract required fields from request body
-    const { 
-      script, 
-      avatarId,
+    const {
+      script,
       talkingAvatarCharacter,
-      talkingAvatarStyle, 
-      voiceId, 
+      talkingAvatarStyle,
+      voiceId,
       locale,
-      background = 'office', 
+      background = 'office',
       aspectRatio = '169',
-      name = 'Video Generation' 
+      name = 'Video Generation'
     } = req.body;
 
     // Validate required fields
-    if (!script || !avatarId || !voiceId) {
+    if (!script || !voiceId) {
       return res.status(400).json({
         message: "Missing required fields",
         details: "Script, avatarId, and voiceId are required"
@@ -115,7 +114,6 @@ router.post("/generate", async (req, res) => {
       status: STATUS[response.data.status] || 'pending',
       metadata: {
         script,
-        avatarId,
         voiceId,
         background,
         aspectRatio
@@ -123,7 +121,7 @@ router.post("/generate", async (req, res) => {
     });
 
     await task.save();
-    
+
     // Return success response
     res.status(200).json({
       jobId: response.data.id,
@@ -133,7 +131,7 @@ router.post("/generate", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating avatar:", error);
-    
+
     // Provide appropriate error response
     res.status(error.response?.status || 500).json({
       message: "Failed to create avatar video",
@@ -180,7 +178,7 @@ router.get("/status/:id", async (req, res) => {
 
     // Call Azure AI avatar service for status
     const response = await axios.get(
-      `${URL}avatar/batchsyntheses/${jobId}?api-version=${API_VERSION}`, 
+      `${URL}avatar/batchsyntheses/${jobId}?api-version=${API_VERSION}`,
       {
         headers: {
           "Ocp-Apim-Subscription-Key": SUBSCRIPTION_KEY,
@@ -191,14 +189,14 @@ router.get("/status/:id", async (req, res) => {
     // Find more specific status information
     let detailedStatus = response.data.status;
     let progressValue = PROGRESS_PHASES[detailedStatus] || 0;
-    
+
     // Extract the status information from the response
     if (response.data.status === 'Running') {
       if (response.data.lastActionDateTime) {
         const lastActionTime = new Date(response.data.lastActionDateTime);
         const creationTime = new Date(response.data.createdDateTime);
         const timeDiff = lastActionTime - creationTime;
-        
+
         // If it's been more than 1 minute, assume it's processing audio
         if (timeDiff > 60000) {
           detailedStatus = 'ProcessingAudio';
@@ -210,7 +208,7 @@ router.get("/status/:id", async (req, res) => {
     // Update task status in the database
     await Task.findOneAndUpdate(
       { taskId: jobId },
-      { 
+      {
         status: STATUS[response.data.status] || 'processing',
         lastUpdated: new Date()
       }
@@ -221,17 +219,17 @@ router.get("/status/:id", async (req, res) => {
       jobId: response.data.id,
       status: STATUS[response.data.status] || 'processing',
       progress: progressValue,
-      videoUrl: response.data.outputs?.result?.url || null,
+      videoUrl: response.data.outputs?.result || null,
       detailedStatus: detailedStatus
     };
 
     // If the status is 'Succeeded', add the video URL
-    if (response.data.status === 'Succeeded' && response.data.outputs?.result?.url) {
+    if (response.data.status === 'completed' && response.data.outputs?.result) {
       // Update task with video URL in the database
       await Task.findOneAndUpdate(
         { taskId: jobId },
-        { 
-          videoUrl: response.data.outputs.result.url,
+        {
+          videoUrl: response.data.outputs.result,
           completedDate: new Date()
         }
       );
@@ -240,7 +238,7 @@ router.get("/status/:id", async (req, res) => {
     res.status(200).json(responseData);
   } catch (error) {
     console.error("Error checking avatar status:", error);
-    
+
     // Provide appropriate error response
     res.status(error.response?.status || 500).json({
       message: "Failed to retrieve avatar status",
@@ -256,14 +254,14 @@ router.post("/completeTask", async (req, res) => {
   try {
     const { taskId } = req.body;
     const userId = req.auth.userId;
-    
+
     if (!taskId) {
       return res.status(400).json({
         message: "Missing task ID",
         details: "A valid task ID is required"
       });
     }
-    
+
     // Find the task first to check ownership
     const task = await Task.findOne({ taskId: taskId });
     if (!task) {
@@ -280,16 +278,16 @@ router.post("/completeTask", async (req, res) => {
         details: "You don't have permission to modify this task"
       });
     }
-    
+
     const result = await Task.findOneAndUpdate(
       { taskId: taskId },
-      { 
+      {
         status: 'completed',
         completedDate: new Date()
       },
       { new: true }
     );
-    
+
     res.status(200).json({
       message: "Task marked as complete",
       taskId: result.taskId
@@ -306,18 +304,21 @@ router.post("/completeTask", async (req, res) => {
 /**
  * Delete a task
  */
-router.post("/deleteTask", async (req, res) => {
+router.delete("/deleteTask/:id", async (req, res) => {
+  console.log("Delete task");
   try {
-    const { taskId } = req.body;
+    const taskId = req.params.id;
     const userId = req.auth.userId;
-    
+
+    console.log(taskId);
+
     if (!taskId) {
       return res.status(400).json({
         message: "Missing task ID",
         details: "A valid task ID is required"
       });
     }
-    
+
     // Find the task first to check ownership
     const task = await Task.findOne({ taskId: taskId });
     if (!task) {
@@ -334,9 +335,19 @@ router.post("/deleteTask", async (req, res) => {
         details: "You don't have permission to delete this task"
       });
     }
-    
+
+    // Delete the task from Azure
+    await axios.delete(
+      `${URL}avatar/batchsyntheses/${taskId}?api-version=${API_VERSION}`,
+      {
+        headers: {
+          "Ocp-Apim-Subscription-Key": SUBSCRIPTION_KEY,
+        },
+      }
+    );
+
     const result = await Task.findOneAndDelete({ taskId: taskId });
-    
+
     res.status(200).json({
       message: "Task deleted successfully",
       taskId: taskId
@@ -373,7 +384,7 @@ router.get("/list", async (req, res) => {
       });
     }
 
-    
+
 
     // Return the list of tasks
     res.status(200).json({
@@ -392,7 +403,7 @@ router.get("/list", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching user tasks:", error);
-    
+
     res.status(500).json({
       message: "Failed to retrieve tasks",
       details: error.message
