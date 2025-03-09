@@ -55,8 +55,11 @@ router.post("/generate", async (req, res) => {
     // Extract required fields from request body
     const { 
       script, 
-      avatarId, 
+      avatarId,
+      talkingAvatarCharacter,
+      talkingAvatarStyle, 
       voiceId, 
+      locale,
       background = 'office', 
       aspectRatio = '169',
       name = 'Video Generation' 
@@ -70,33 +73,6 @@ router.post("/generate", async (req, res) => {
       });
     }
 
-    // Map avatar IDs to Azure AI service format
-    const avatarMapping = {
-      'avatar1': 'lisa',
-      'avatar2': 'marcus',
-      'avatar3': 'sarah',
-      'avatar4': 'dave',
-      'avatar5': 'eliza',
-      'avatar6': 'john'
-    };
-    
-    // Map voice IDs to Azure AI service format
-    const voiceMapping = {
-      'voice1': 'en-US-JennyNeural',
-      'voice2': 'en-US-GuyNeural',
-      'voice3': 'en-GB-SoniaNeural',
-      'voice4': 'en-GB-RyanNeural',
-      'voice5': 'es-ES-ElviraNeural',
-      'voice6': 'fr-FR-HenriNeural'
-    };
-
-    // Map aspect ratio to appropriate setting
-    const aspectRatioMapping = {
-      '169': 'landscape',
-      '11': 'square',
-      '916': 'portrait'
-    };
-
     // Generate a unique ID for this request
     const jobId = uuidv4();
 
@@ -105,17 +81,17 @@ router.post("/generate", async (req, res) => {
       inputKind: "SSML",
       inputs: [
         {
-          content: `<speak version='1.0' xml:lang='en-US'><voice name='${voiceMapping[voiceId]}'>${script}</voice></speak>`,
+          content: `<speak version='1.0' xml:lang='${locale}'><voice name='${voiceId}'>${script}</voice></speak>`,
         },
       ],
       avatarConfig: {
-        talkingAvatarCharacter: avatarMapping[avatarId] || 'lisa',
-        talkingAvatarStyle: background || 'office',
-        videoFormat: aspectRatioMapping[aspectRatio] || 'landscape'
+        talkingAvatarCharacter: talkingAvatarCharacter || 'lisa',
+        talkingAvatarStyle: talkingAvatarStyle || 'casual',
+        // videoFormat: aspectRatioMapping[aspectRatio] || 'landscape'
       },
-      properties: {
-        customName: name
-      }
+      // properties: {
+      //   customName: name
+      // }
     };
 
     // Call Azure AI avatar service
