@@ -223,15 +223,19 @@ router.get("/status/:id", async (req, res) => {
       detailedStatus: detailedStatus
     };
 
+    debugger;
     // If the status is 'Succeeded', add the video URL
-    if (response.data.status === 'completed' && response.data.outputs?.result) {
+    console.log(response.data.status);
+    if (response.data.status === 'Succeeded' && response.data.outputs?.result) {
+      console.log(response.data.outputs?.result);
       // Update task with video URL in the database
       await Task.findOneAndUpdate(
         { taskId: jobId },
         {
           videoUrl: response.data.outputs.result,
           completedDate: new Date()
-        }
+        },
+        { new: true }
       );
     }
 
@@ -397,7 +401,7 @@ router.get("/list", async (req, res) => {
         createdAt: task.createDate,
         updatedAt: task.lastUpdated,
         completedAt: task.completedDate || null,
-        videoUrl: task.videoUrl || null,
+        videoUrl: task.videoUrl || null,  // This line is correct but the data might be missing
         metadata: task.metadata || {}
       }))
     });
