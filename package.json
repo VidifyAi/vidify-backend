@@ -6,9 +6,11 @@
     "start": "nodemon ./bin/www"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^5.1.6",
     "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "cookie-parser": "~1.4.6",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "debug": "~4.3.7",
     "dotenv": "^16.4.7",

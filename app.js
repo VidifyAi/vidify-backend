@@ -4,23 +4,33 @@ var express = require("express");
 var swaggerJsdoc = require("swagger-jsdoc");
 var swaggerUi = require("swagger-ui-express");
 var mongoose = require("mongoose");
+const cors = require('cors');
 var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
+const Voice = require("./models/voices");
 const { format } = require("date-fns");
+const { Clerk } = require('@clerk/clerk-sdk-node');
 
 // 1st party dependencies
 var indexRouter = require("./routes/index");
 var avatarRouter = require("./routes/avatar");
+var voicesRouter = require("./routes/voices");
 
 async function getApp() {
+  // Initialize Clerk
+  if (!process.env.CLERK_SECRET_KEY) {
+    console.warn("CLERK_SECRET_KEY is not set. Authentication will not work properly.");
+  }
 
   // Database
   // Use AZURE_COSMOS_CONNECTIONSTRING if available, otherwise fall back to MONGODB_URI
-  const mongoUri = process.env.AZURE_COSMOS_CONNECTIONSTRING || process.env.MONGODB_URI; // For App Service, change to process.env.AZURE_COSMOS_CONNECTIONSTRING || process.env.MONGODB_URI;
+  const mongoUri = process.env.AZURE_COSMOS_CONNECTIONSTRING || process.env.MONGODB_URI;
 
   mongoose.connect(mongoUri).then(() => {
     console.log('Connected to database');
+
+
   }).catch((err) => {
     console.error('Error connecting to database:', err);
   });
@@ -31,8 +41,8 @@ async function getApp() {
   app.set('port', port);
 
   // view engine setup
-  app.set("views", path.join(__dirname, "views"));
-  app.set("view engine", "pug");
+  // app.set("views", path.join(__dirname, "views"));
+  // app.set("view engine", "pug");
 
   const options = {
     definition: {
@@ -57,6 +67,21 @@ async function getApp() {
           url: "http://localhost:3000",
         },
       ],
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: "http",
+            scheme: "bearer",
+            bearerFormat: "JWT",
+            description: "Enter JWT Bearer token **_only_**"
+          }
+        }
+      },
+      security: [
+        {
+          BearerAuth: []
+        }
+      ]
     },
     apis: ["./routes/*.js"],
   };
@@ -66,6 +91,7 @@ async function getApp() {
     swaggerUi.serve,
     swaggerUi.setup(specs, { explorer: true })
   );
+  app.use(cors())
 
   app.use(logger("dev"));
   app.use(express.json());
@@ -76,12 +102,8 @@ async function getApp() {
   app.locals.format = format;
 
   app.use("/", indexRouter);
-  app.use("/avatar", avatarRouter);
-  app.use("/js", express.static(__dirname + "/node_modules/bootstrap/dist/js")); // redirect bootstrap JS
-  app.use(
-    "/css",
-    express.static(__dirname + "/node_modules/bootstrap/dist/css")
-  ); // redirect CSS bootstrap
+  app.use("/api/avatar", avatarRouter);
+  app.use("/api/voices", voicesRouter);
 
   // catch 404 and forward to error handler
   app.use(function (req, res, next) {
@@ -96,16 +118,16 @@ async function getApp() {
 
     // render the error page
     res.status(err.status || 500);
-    res.render("error");
+    res.json("error");
   });
 
   return app;
 }
+
 /**
  * Normalize a port into a number, string, or false.
  */
-
- function normalizePort(val) {
+function normalizePort(val) {
   var port = parseInt(val, 10);
 
   if (isNaN(port)) {
@@ -120,6 +142,7 @@ async function getApp() {
 
   return false;
 }
+
 module.exports = {
   getApp
 };

@@ -1,19 +1,43 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const taskSchema = new mongoose.Schema({
+const TaskSchema = new Schema({
+  userId: {
+    type: String,
+    required: true,
+    index: true
+  },
   taskName: {
     type: String,
-    trim: true,
+    required: true
   },
-  taskId: String,
-  status: { 
-    type: String, 
-    enum: ['pending', 'success', 'failed'], 
-    default: 'active' 
+  taskId: {
+    type: String,
+    required: true,
+    unique: true
   },
-  createDate: Date,
-  completedDate: Date,
-  completed: Boolean
+  createDate: {
+    type: Date,
+    default: Date.now
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now
+  },
+  completedDate: {
+    type: Date
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'completed', 'failed'],
+    default: 'pending'
+  },
+  videoUrl: {
+    type: String
+  },
+  metadata: {
+    type: Object
+  }
 });
 
-module.exports = mongoose.model('Task', taskSchema);
+module.exports = mongoose.model('Task', TaskSchema);
