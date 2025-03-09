@@ -125,23 +125,23 @@ async function getApp() {
     { key: 'sv-SE-MattiasNeural', language: 'Swedish', country: 'Sweden', gender: 'Male', locale: 'sv-SE', voiceName: 'MattiasNeural' }
   ];
 
-  async function populateVoices() {
-    try {
+  // async function populateVoices() {
+  //   try {
 
-      await Voice.deleteMany({});
-      console.log('Cleared existing voices');
+  //     await Voice.deleteMany({});
+  //     console.log('Cleared existing voices');
   
-      await Voice.insertMany(voicesData);
-      console.log('Inserted new voices');
+  //     await Voice.insertMany(voicesData);
+  //     console.log('Inserted new voices');
   
-      mongoose.disconnect();
-      console.log('Disconnected from MongoDB');
-    } catch (error) {
-      console.error('Error populating voices:', error);
-    }
-  }
+  //     mongoose.disconnect();
+  //     console.log('Disconnected from MongoDB');
+  //   } catch (error) {
+  //     console.error('Error populating voices:', error);
+  //   }
+  // }
   
-  populateVoices();
+  // populateVoices();
 
   // view engine setup
   // app.set("views", path.join(__dirname, "views"));

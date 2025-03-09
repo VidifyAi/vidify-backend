@@ -12,6 +12,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const voices = await Voice.find().lean();
+    console.log("Voices found: ----- ", voices);
 
     if (!voices || voices.length === 0) {
       return res.status(200).json({
