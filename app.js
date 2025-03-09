@@ -127,6 +127,9 @@ async function getApp() {
 
   async function populateVoices() {
     try {
+
+      await Voice.deleteMany({});
+      console.log('Cleared existing voices');
   
       await Voice.insertMany(voicesData);
       console.log('Inserted new voices');
