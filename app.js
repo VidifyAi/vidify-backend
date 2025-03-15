@@ -19,6 +19,7 @@ var voicesRouter = require("./routes/voices");
 var subscriptionsRouter = require('./routes/subscriptions');
 const paymentsRouter = require('./routes/payments');
 const adminRouter = require('./routes/admin');
+const webhooksRouter = require('./routes/webhooks'); // Add this import for webhooks
 
 async function getApp() {
   // Initialize Clerk
@@ -32,8 +33,6 @@ async function getApp() {
 
   mongoose.connect(mongoUri).then(() => {
     console.log('Connected to database');
-
-
   }).catch((err) => {
     console.error('Error connecting to database:', err);
   });
@@ -112,8 +111,8 @@ async function getApp() {
   app.use("/api/subscriptions", subscriptionsRouter);
   app.use("/api/payments", paymentsRouter);
   app.use("/api/admin", adminRouter);
+  app.use("/api/webhooks", webhooksRouter);
   
-
   // catch 404 and forward to error handler
   app.use(function (req, res, next) {
     next(createError(404));
