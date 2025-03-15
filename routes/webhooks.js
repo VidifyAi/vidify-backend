@@ -178,23 +178,3 @@ router.post('/clerk', verifyClerkWebhook, async (req, res) => {
 });
 
 module.exports = router;
-
-// Update app.js to include the new routes
-// filepath: /workspaces/vidify-backend/app.js
-
-// ...existing imports...
-var usersRouter = require('./routes/users');
-var webhooksRouter = require('./routes/webhooks');
-
-async function getApp() {
-  // ...existing code...
-
-  app.use("/", indexRouter);
-  app.use("/api/avatar", avatarRouter);
-  app.use("/api/voices", voicesRouter);
-  app.use("/api/subscriptions", subscriptionsRouter);
-  app.use("/api/users", usersRouter);
-  app.use("/api/webhooks", webhooksRouter);
-  
-  // ...existing code...
-}
