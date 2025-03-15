@@ -11,7 +11,6 @@ var logger = require("morgan");
 const Voice = require("./models/voices");
 const { format } = require("date-fns");
 const { Clerk } = require('@clerk/clerk-sdk-node');
-const rateLimit = require('express-rate-limit');
 
 // 1st party dependencies
 var indexRouter = require("./routes/index");
@@ -91,6 +90,7 @@ async function getApp() {
     apis: ["./routes/*.js", "./models/*.js"],
   };
   const specs = swaggerJsdoc(options);
+  app.set('swaggerSpec', specs); // Add this line to store the specs in the app
   app.use(
     "/api-docs",
     swaggerUi.serve,
@@ -106,30 +106,6 @@ async function getApp() {
 
   app.locals.format = format;
 
-  // Apply rate limiting to API routes
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      message: 'Too many requests from this IP, please try again later.'
-    }
-  });
-
-  app.use('/api/', apiLimiter);
-
-  // Add stricter limits for sensitive endpoints
-  const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 10,
-    message: {
-      message: 'Too many authentication attempts, please try again later.'
-    }
-  });
-
-  app.use('/api/webhooks/', authLimiter);
-  
   app.use("/", indexRouter);
   app.use("/api/avatar", avatarRouter);
   app.use("/api/voices", voicesRouter);
