@@ -1,5 +1,5 @@
 const express = require('express');
-const crypto = require('crypto');
+const { Webhook } = require('svix');
 const User = require('../models/user');
 const router = express.Router();
 
@@ -10,10 +10,23 @@ const router = express.Router();
  *   description: Webhook endpoints for third-party integrations
  */
 
-// This is used to verify webhook signatures from Clerk - updated per docs
+// This is used to verify webhook signatures from Clerk using the svix library
 const verifyClerkWebhook = (req, res, next) => {
   try {
-    // Get the webhook signature from the headers
+    // Get the webhook signing secret from environment variables
+    const SIGNING_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+    
+    if (!SIGNING_SECRET) {
+      console.error("CLERK_WEBHOOK_SECRET is not set");
+      return res.status(500).json({
+        message: "Server configuration error"
+      });
+    }
+
+    // Create a new Svix webhook instance with the signing secret
+    const wh = new Webhook(SIGNING_SECRET);
+    
+    // Get the webhook headers
     const svix_id = req.headers['svix-id'];
     const svix_timestamp = req.headers['svix-timestamp'];
     const svix_signature = req.headers['svix-signature'];
@@ -24,61 +37,23 @@ const verifyClerkWebhook = (req, res, next) => {
         message: "Missing webhook signature headers"
       });
     }
-
-    // Get the webhook secret from environment variables
-    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
-    if (!webhookSecret) {
-      console.error("CLERK_WEBHOOK_SECRET is not set");
-      return res.status(500).json({
-        message: "Server configuration error"
-      });
-    }
-
-    // IMPORTANT: Use raw body for signature verification
-    // Express might have already parsed the body as JSON
+    
+    // Get the raw body as a string
     const payload = JSON.stringify(req.body);
     
-    // Create the signature components
-    const signaturePayload = `${svix_id}.${svix_timestamp}.${payload}`;
-    
-    // Convert the webhook secret from base64 to binary
-    const secretBytes = Buffer.from(webhookSecret, 'base64');
-    
-    // Calculate the expected signature - use binary format as specified in Clerk docs
-    const hmac = crypto.createHmac('sha256', secretBytes);
-    hmac.update(signaturePayload);
-    const expectedSignature = hmac.digest();
-
-    // Parse the signature header into pairs
-    const signatures = {};
-    svix_signature.split(' ').forEach(pair => {
-      const [k, v] = pair.split(',');
-      signatures[k] = v;
+    // Verify the payload with headers using svix
+    wh.verify(payload, {
+      'svix-id': svix_id,
+      'svix-timestamp': svix_timestamp,
+      'svix-signature': svix_signature
     });
-
-    // Check if any signature matches the expected one
-    const signatureFound = Object.entries(signatures).some(([version, signature]) => {
-      if (version !== 'v1') return false;
-      
-      const actualSignature = Buffer.from(signature, 'base64');
-      
-      // Constant-time comparison to prevent timing attacks
-      return crypto.timingSafeEqual(actualSignature, expectedSignature);
-    });
-
-    if (!signatureFound) {
-      console.log('Signature verification failed');
-      console.log('Headers:', req.headers);
-      return res.status(401).json({
-        message: "Invalid webhook signature"
-      });
-    }
     
+    // If verification passes, continue to the next middleware
     next();
   } catch (error) {
     console.error("Error verifying webhook signature:", error);
-    res.status(500).json({
-      message: "Failed to verify webhook signature",
+    return res.status(401).json({
+      message: "Invalid webhook signature",
       details: error.message
     });
   }
@@ -115,9 +90,9 @@ const verifyClerkWebhook = (req, res, next) => {
  *         description: Server error
  */
 router.post('/clerk', verifyClerkWebhook, async (req, res) => {
-  console.log(req.body);
   try {
     const { type, data } = req.body;
+    console.log(`Received webhook: ${type}`);
     
     // Handle different event types from Clerk
     switch (type) {

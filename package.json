@@ -26,6 +26,7 @@
     "pug": "^3.0.3",
     "redis": "^4.7.0",
     "stripe": "^17.7.0",
+    "svix": "^1.61.4",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.0.3"
