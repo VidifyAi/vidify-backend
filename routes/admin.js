@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { requireAuth } = require('@clerk/express');
 const User = require('../models/user');
 const Subscription = require('../models/subscription');
 const Task = require('../models/task');
@@ -53,7 +53,7 @@ const requireAdmin = async (req, res, next) => {
 };
 
 // Apply auth and admin middleware to all routes
-router.use(ClerkExpressRequireAuth());
+router.use(requireAuth());
 router.use(requireAdmin);
 
 /**

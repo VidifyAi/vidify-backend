@@ -10,7 +10,7 @@ const router = express.Router();
  *   description: Webhook endpoints for third-party integrations
  */
 
-// This is used to verify webhook signatures from Clerk
+// This is used to verify webhook signatures from Clerk - updated per docs
 const verifyClerkWebhook = (req, res, next) => {
   try {
     // Get the webhook signature from the headers
@@ -34,35 +34,46 @@ const verifyClerkWebhook = (req, res, next) => {
       });
     }
 
-    // Get the raw body of the request
+    // IMPORTANT: Use raw body for signature verification
+    // Express might have already parsed the body as JSON
     const payload = JSON.stringify(req.body);
     
     // Create the signature components
     const signaturePayload = `${svix_id}.${svix_timestamp}.${payload}`;
     
-    // Calculate the expected signature
-    const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(signaturePayload)
-      .digest('hex');
+    // Convert the webhook secret from base64 to binary
+    const secretBytes = Buffer.from(webhookSecret, 'base64');
     
-    // Convert the signature header to an array
-    const signatureParts = svix_signature.split(' ');
-    
-    // Check if the expected signature matches any of the signatures in the header
-    const signatureFound = signatureParts.some(sig => {
-      const [version, signature] = sig.split(',');
-      return signature === expectedSignature;
+    // Calculate the expected signature - use binary format as specified in Clerk docs
+    const hmac = crypto.createHmac('sha256', secretBytes);
+    hmac.update(signaturePayload);
+    const expectedSignature = hmac.digest();
+
+    // Parse the signature header into pairs
+    const signatures = {};
+    svix_signature.split(' ').forEach(pair => {
+      const [k, v] = pair.split(',');
+      signatures[k] = v;
     });
-    
-    // If the signature doesn't match, the request is invalid
+
+    // Check if any signature matches the expected one
+    const signatureFound = Object.entries(signatures).some(([version, signature]) => {
+      if (version !== 'v1') return false;
+      
+      const actualSignature = Buffer.from(signature, 'base64');
+      
+      // Constant-time comparison to prevent timing attacks
+      return crypto.timingSafeEqual(actualSignature, expectedSignature);
+    });
+
     if (!signatureFound) {
+      console.log('Signature verification failed');
+      console.log('Headers:', req.headers);
       return res.status(401).json({
         message: "Invalid webhook signature"
       });
     }
     
-    // If the signature matches, proceed to the next middleware
     next();
   } catch (error) {
     console.error("Error verifying webhook signature:", error);
@@ -104,6 +115,7 @@ const verifyClerkWebhook = (req, res, next) => {
  *         description: Server error
  */
 router.post('/clerk', verifyClerkWebhook, async (req, res) => {
+  console.log(req.body);
   try {
     const { type, data } = req.body;
     

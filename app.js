@@ -10,7 +10,6 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const Voice = require("./models/voices");
 const { format } = require("date-fns");
-const { Clerk } = require('@clerk/clerk-sdk-node');
 
 // 1st party dependencies
 var indexRouter = require("./routes/index");

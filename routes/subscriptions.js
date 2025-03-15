@@ -1,7 +1,7 @@
 const express = require('express');
 const Subscription = require('../models/subscription');
 const PLANS = require('../config/plans');
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { requireAuth } = require('@clerk/express');
 
 const router = express.Router();
 
@@ -73,7 +73,7 @@ const router = express.Router();
  */
 
 // Apply authentication middleware
-router.use(ClerkExpressRequireAuth());
+router.use(requireAuth());
 
 /**
  * @swagger

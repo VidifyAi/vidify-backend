@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { requireAuth } = require('@clerk/express');
 const Subscription = require('../models/subscription');
 
-router.use(ClerkExpressRequireAuth());
+router.use(requireAuth());
 
 /**
  * @swagger

@@ -101,7 +101,7 @@
 
 const express = require('express');
 const User = require('../models/user');
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { requireAuth } = require('@clerk/express');
 const router = express.Router();
 
 /**
@@ -175,7 +175,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.get('/me', ClerkExpressRequireAuth(), async (req, res) => {
+router.get('/me', ClerkExrequireAuthpressRequireAuth(), async (req, res) => {
   try {
     const clerkId = req.auth.userId;
     
@@ -249,7 +249,7 @@ router.get('/me', ClerkExpressRequireAuth(), async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/update', ClerkExpressRequireAuth(), async (req, res) => {
+router.post('/update', requireAuth(), async (req, res) => {
   try {
     const clerkId = req.auth.userId;
     const { metadata } = req.body;

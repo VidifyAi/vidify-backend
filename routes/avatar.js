@@ -3,7 +3,7 @@ var express = require("express");
 const axios = require("axios");
 const Task = require("../models/task");
 const { v4: uuidv4 } = require("uuid");
-const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { requireAuth } = require('@clerk/express');
 const { checkSubscription, checkVideoGenerationLimit } = require('../middleware/subscriptionCheck');
 const Subscription = require('../models/subscription');
 
@@ -36,7 +36,7 @@ router.get("/", function (req, res) {
 });
 
 // Apply authentication middleware to all routes below this line
-router.use(ClerkExpressRequireAuth());
+router.use(requireAuth());
 
 /**
  * Create an avatar video
