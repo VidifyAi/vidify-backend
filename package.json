@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "nodemon ./bin/www"
+    "start": "nodemon ./bin/www",
+    "test": "jest"
   },
   "dependencies": {
     "@clerk/clerk-sdk-node": "^5.1.6",
@@ -15,14 +16,22 @@
     "debug": "~4.3.7",
     "dotenv": "^16.4.7",
     "express": "^4.21.0",
+    "express-rate-limit": "^7.5.0",
     "http-errors": "~2.0.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.42.0",
     "mongoose": "^8.6.3",
     "morgan": "~1.10.0",
+    "nodemailer": "^6.10.0",
     "nodemon": "^3.1.9",
     "pug": "^3.0.3",
+    "redis": "^4.7.0",
+    "stripe": "^17.7.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
   }
 }

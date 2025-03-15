@@ -4,6 +4,8 @@ const axios = require("axios");
 const Task = require("../models/task");
 const { v4: uuidv4 } = require("uuid");
 const { ClerkExpressRequireAuth } = require('@clerk/clerk-sdk-node');
+const { checkSubscription, checkVideoGenerationLimit } = require('../middleware/subscriptionCheck');
+const Subscription = require('../models/subscription');
 
 var router = express.Router();
 const SUBSCRIPTION_KEY = process.env.AVATAR_SUBSCRIPTION_KEY;
@@ -47,10 +49,12 @@ router.use(ClerkExpressRequireAuth());
  * @param {string} req.body.aspectRatio - The aspect ratio for the video
  * @returns {object} Job ID and status information
  */
-router.post("/generate", async (req, res) => {
+router.post("/generate", checkSubscription, checkVideoGenerationLimit, async (req, res) => {
   try {
     // Get the user ID from auth context
     const userId = req.auth.userId;
+    const subscription = req.subscription;
+    const plan = req.plan;
 
     // Extract required fields from request body
     const {
@@ -93,6 +97,14 @@ router.post("/generate", async (req, res) => {
       // }
     };
 
+    // Add watermark for free plan
+    if (plan.watermark) {
+      data.watermark = "Vidify Free";
+    }
+    
+    // Set quality based on plan
+    data.quality = plan.videoQuality;
+
     // Call Azure AI avatar service
     const response = await axios.put(
       `${URL}avatar/batchsyntheses/${jobId}?api-version=${API_VERSION}`,
@@ -116,18 +128,25 @@ router.post("/generate", async (req, res) => {
         script,
         voiceId,
         background,
-        aspectRatio
+        aspectRatio,
+        planType: subscription.plan,
+        quality: plan.videoQuality
       }
     });
 
     await task.save();
+
+    // Increment usage counter
+    subscription.usage.videosGenerated++;
+    await subscription.save();
 
     // Return success response
     res.status(200).json({
       jobId: response.data.id,
       status: STATUS[response.data.status] || 'pending',
       progress: PROGRESS_PHASES[response.data.status] || 0,
-      message: "Video generation started successfully"
+      message: "Video generation started successfully",
+      remainingVideos: plan.monthlyLimit - subscription.usage.videosGenerated
     });
   } catch (error) {
     console.error("Error creating avatar:", error);

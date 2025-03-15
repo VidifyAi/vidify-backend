@@ -11,11 +11,15 @@ var logger = require("morgan");
 const Voice = require("./models/voices");
 const { format } = require("date-fns");
 const { Clerk } = require('@clerk/clerk-sdk-node');
+const rateLimit = require('express-rate-limit');
 
 // 1st party dependencies
 var indexRouter = require("./routes/index");
 var avatarRouter = require("./routes/avatar");
 var voicesRouter = require("./routes/voices");
+var subscriptionsRouter = require('./routes/subscriptions');
+const paymentsRouter = require('./routes/payments');
+const adminRouter = require('./routes/admin');
 
 async function getApp() {
   // Initialize Clerk
@@ -36,6 +40,7 @@ async function getApp() {
   });
 
   var app = express();
+  app.set('trust proxy', 1 /* number of proxies between user and server */);
 
   var port = normalizePort(process.env.PORT || '3000');
   app.set('port', port);
@@ -44,24 +49,29 @@ async function getApp() {
     definition: {
       openapi: "3.1.0",
       info: {
-        title: "LogRocket Express API with Swagger",
-        version: "0.1.0",
-        description:
-          "This is a simple CRUD API application made with Express and documented with Swagger",
+        title: "Vidify API Documentation",
+        version: "1.0.0",
+        description: "API documentation for the Vidify text-to-avatar video generation platform",
         license: {
-          name: "MIT",
-          url: "https://spdx.org/licenses/MIT.html",
+          name: "Proprietary",
         },
         contact: {
-          name: "LogRocket",
-          url: "https://logrocket.com",
-          email: "info@email.com",
+          name: "Vidify Support",
+          url: "https://vidify.com/support",
+          email: "support@vidify.com",
         },
       },
       servers: [
         {
-          url: "http://localhost:3000",
+          url: process.env.API_BASE_URL || "http://localhost:3000",
+          description: "Vidify API Server"
         },
+      ],
+      tags: [
+        { name: "Avatar", description: "Avatar video generation endpoints" },
+        { name: "Voices", description: "Voice management endpoints" },
+        { name: "Subscriptions", description: "Subscription management endpoints" },
+        { name: "Users", description: "User management endpoints" }
       ],
       components: {
         securitySchemes: {
@@ -69,9 +79,8 @@ async function getApp() {
             type: "http",
             scheme: "bearer",
             bearerFormat: "JWT",
-            description: "Enter JWT Bearer token **_only_**"
           }
-        }
+        },
       },
       security: [
         {
@@ -79,7 +88,7 @@ async function getApp() {
         }
       ]
     },
-    apis: ["./routes/*.js"],
+    apis: ["./routes/*.js", "./models/*.js"],
   };
   const specs = swaggerJsdoc(options);
   app.use(
@@ -97,9 +106,37 @@ async function getApp() {
 
   app.locals.format = format;
 
+  // Apply rate limiting to API routes
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      message: 'Too many requests from this IP, please try again later.'
+    }
+  });
+
+  app.use('/api/', apiLimiter);
+
+  // Add stricter limits for sensitive endpoints
+  const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10,
+    message: {
+      message: 'Too many authentication attempts, please try again later.'
+    }
+  });
+
+  app.use('/api/webhooks/', authLimiter);
+  
   app.use("/", indexRouter);
   app.use("/api/avatar", avatarRouter);
   app.use("/api/voices", voicesRouter);
+  app.use("/api/subscriptions", subscriptionsRouter);
+  app.use("/api/payments", paymentsRouter);
+  app.use("/api/admin", adminRouter);
+  
 
   // catch 404 and forward to error handler
   app.use(function (req, res, next) {

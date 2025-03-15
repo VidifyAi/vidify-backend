@@ -4,10 +4,80 @@ const Voice = require('../models/voices');
 const router = express.Router();
 
 /**
- * Get list of available voices
- * 
- * @route GET /api/voices
- * @returns {object} List of available voices with details
+ * @swagger
+ * components:
+ *   schemas:
+ *     Voice:
+ *       type: object
+ *       required:
+ *         - key
+ *         - language
+ *         - country
+ *         - gender
+ *         - locale
+ *         - voiceName
+ *       properties:
+ *         key:
+ *           type: string
+ *           description: Unique identifier for the voice
+ *         language:
+ *           type: string
+ *           description: Language of the voice
+ *         country:
+ *           type: string
+ *           description: Country of origin for the voice
+ *         gender:
+ *           type: string
+ *           enum: [Male, Female]
+ *           description: Gender of the voice
+ *         locale:
+ *           type: string
+ *           description: Locale code (e.g., en-US)
+ *         voiceName:
+ *           type: string
+ *           description: Display name of the voice
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Voices
+ *   description: Voice management endpoints
+ */
+
+/**
+ * @swagger
+ * /api/voices:
+ *   get:
+ *     summary: Get list of available voices
+ *     description: Retrieves all available voices for text-to-speech
+ *     tags: [Voices]
+ *     responses:
+ *       200:
+ *         description: A list of voices
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *                   description: Number of voices returned
+ *                 voices:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Voice'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 details:
+ *                   type: string
  */
 router.get("/", async (req, res) => {
   try {
